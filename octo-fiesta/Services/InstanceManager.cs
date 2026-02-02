@@ -75,6 +75,8 @@ public class InstanceManager
     };
 
     // Test endpoint paths per type
+    // These are lightweight metadata endpoints that return quickly and are used to measure instance latency
+    // Artist ID 3532302 and Track ID 204567804 are arbitrary but stable test IDs
     private const string ApiTestPath = "artist/?id=3532302";
     private const string StreamingTestPath = "track/?id=204567804&quality=HIGH";
 
@@ -287,7 +289,7 @@ public class InstanceManager
             }
 
             // Sort by latency
-            cachedInstances = cachedInstances.OrderBy(i => i.LatencyMs).ToList();
+            cachedInstances = SortInstancesByLatency(cachedInstances);
             _instances[type] = cachedInstances;
 
             // Persist
@@ -318,7 +320,7 @@ public class InstanceManager
             }
 
             // Sort by latency
-            var sorted = newInstances.OrderBy(i => i.LatencyMs).ToList();
+            var sorted = SortInstancesByLatency(newInstances);
             _instances[type] = sorted;
 
             // Persist
@@ -423,6 +425,14 @@ public class InstanceManager
             _logger.LogWarning(ex, "Failed to load persisted {Type} instances", type);
             return null;
         }
+    }
+
+    /// <summary>
+    /// Sorts instances by latency (ascending).
+    /// </summary>
+    private static List<InstanceInfo> SortInstancesByLatency(List<InstanceInfo> instances)
+    {
+        return instances.OrderBy(i => i.LatencyMs).ToList();
     }
 
     /// <summary>

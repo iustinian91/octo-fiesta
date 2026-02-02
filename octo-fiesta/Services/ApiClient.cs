@@ -18,6 +18,10 @@ public class ApiClient
     private int _globalApiIndex;
     private int _globalStreamingIndex;
 
+    // Retry delay constants (in milliseconds)
+    private const int RetryDelayAfterRateLimitMs = 500;
+    private const int RetryDelayAfterErrorMs = 200;
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
@@ -86,7 +90,7 @@ public class ApiClient
                 {
                     _logger.LogWarning("Rate limited by {Instance}, rotating to next", instance.BaseUrl);
                     response.Dispose();
-                    await Task.Delay(500, cancellationToken);
+                    await Task.Delay(RetryDelayAfterRateLimitMs, cancellationToken);
                     IncrementIndex(type);
                     continue;
                 }
@@ -120,14 +124,14 @@ public class ApiClient
                 // Timeout
                 _logger.LogWarning("Timeout for {Instance}, skipping", instance.BaseUrl);
                 lastException = new HttpRequestException($"Request to {instance.BaseUrl} timed out");
-                await Task.Delay(200, cancellationToken);
+                await Task.Delay(RetryDelayAfterErrorMs, cancellationToken);
                 IncrementIndex(type);
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogWarning(ex, "Network error for {Instance}, skipping", instance.BaseUrl);
                 lastException = ex;
-                await Task.Delay(200, cancellationToken);
+                await Task.Delay(RetryDelayAfterErrorMs, cancellationToken);
                 IncrementIndex(type);
             }
             catch (OperationCanceledException)
@@ -159,9 +163,10 @@ public class ApiClient
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // If we can't parse the response, assume it's not the specific auth failure
+            // Log at debug level to aid troubleshooting unexpected response formats
+            _logger.LogDebug(ex, "Failed to parse 401 response body as JSON");
         }
 
         return false;
