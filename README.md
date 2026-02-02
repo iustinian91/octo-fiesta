@@ -123,6 +123,36 @@ dotnet build
 dotnet test
 ```
 
+## Instance Manager Configuration
+
+The Instance Manager provides automatic instance selection and failover for provider API calls.
+
+### Configuration Options
+
+Add the following to `appsettings.json`:
+
+```json
+{
+  "Instances": {
+    "InstancesUrl": "https://raw.githubusercontent.com/example/config/main/instances.json",
+    "StoragePath": "./data",
+    "SpeedTestTimeoutMs": 5000,
+    "RefreshIntervalMs": 3600000
+  }
+}
+```
+
+- **InstancesUrl**: Remote URL to fetch the instance list (falls back to defaults on failure)
+- **StoragePath**: Directory for persisting instance ordering and speed test cache
+- **SpeedTestTimeoutMs**: Timeout for speed tests (default: 5000ms)
+- **RefreshIntervalMs**: Background refresh interval (default: 1 hour)
+
+### Admin API Endpoints
+
+- `GET /admin/instances?type=api` - View ordered instances with latency info
+- `POST /admin/instances/reorder` - Reorder instances manually
+- `POST /admin/instances/refresh` - Trigger immediate speed test refresh
+
 ## License
 
 GPL-3.0
